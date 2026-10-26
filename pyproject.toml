@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdfstruct"
+version = "0.1.0"
+description = "PDFStruct — decompose PDFs into hierarchical outline trees (chapters/sections, page ranges, section text), fully local."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "2351485 ALBERTA INC." }]
+keywords = ["pdf", "outline", "structure", "decomposition", "extraction"]
+dependencies = [
+    "pypdf>=4.0",
+    "pdfminer.six>=20221105",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9"]
+dev = ["pytest>=8", "reportlab>=4", "httpx>=0.27"]
+
+[project.scripts]
+pdfstruct = "pdfstruct.cli:main"
+pdfstruct-api = "pdfstruct.api:main"
+pdfstruct-mcp = "pdfstruct.mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

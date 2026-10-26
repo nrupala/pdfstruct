@@ -1,0 +1,13 @@
+PDFStruct
+Copyright © 2026 2351485 ALBERTA INC.
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+The commercial services layer is described in COMMERCIAL-LICENSE.md; the
+licence map is LICENSING.md.
+
+Lineage: PDFStruct grows out of the PDF tooling built for the Outcome
+Convergence System (OCS) book — the PyPDF2/pdfminer extractors in
+`pdfextractor_tool/` and the heading-parsing knowledge-ingestion utility
+`src/ocs/subagents/pdf_extractor.py` in the owner's `ocs-software`
+repository. See PROVENANCE.md for exactly what is carried over and what
+is new.
