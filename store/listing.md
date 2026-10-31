@@ -11,9 +11,10 @@ PDFStruct
 
 ## One-line summary
 
-See any PDF's structure — its outline tree with page ranges — computed
-entirely on your own machine. (105 characters; within Chrome's 132-char
-summary limit.)
+Decompose a PDF into its structure — a hierarchical outline tree with
+page ranges and each section's own text — free, fully local.
+(130 characters; within Chrome's 132-char summary limit. This is the
+canonical one-liner from CANONICAL-SHEET.md — do not paraphrase it.)
 
 ## Full description
 
@@ -53,19 +54,22 @@ manuals, reports, theses — and wants the map before the territory.
 
 ## Permission justifications (for reviewers)
 
-- **host_permissions — `http://127.0.0.1:8766/*` and
-  `http://localhost:8766/*` only.** The extension's single function is
-  to POST a user-chosen PDF to the PDFStruct API that the user runs on
-  their own machine, and to read the outline it returns. Both entries
-  are loopback addresses on one fixed port used by the product. There
-  are **no remote hosts** in the manifest and no network access to any
-  other destination exists in the code.
-- **No other API permissions are used for network, storage, history,
-  or browsing data.** The extension reads only the one file the user
-  picks in the popup's file chooser, at the moment they pick it.
-- Declared `activeTab` permission: present in the manifest but not
-  exercised by any code path (flagged internally for removal before
-  submission — see README-STORES.md "Known findings").
+- **host_permissions — `http://127.0.0.1:8766/*` only.** The
+  extension's single function is to POST a user-chosen PDF to the
+  PDFStruct API that the user runs on their own machine, and to read
+  the outline it returns. That is a loopback address on one fixed
+  port. There are **no remote hosts** in the manifest and no network
+  access to any other destination exists in the code.
+- **No API permissions are declared at all** — no `activeTab`, no
+  storage, history, tabs, or browsing-data access. The extension
+  reads only the one file the user picks in the popup's file
+  chooser, at the moment they pick it.
+  (Remediation note, 2026-10-30: an earlier draft of this section
+  justified an `activeTab` permission and a second loopback alias
+  that the shipped manifest does not declare. Gemini's pre-store
+  check (store/pdfstruct--gemini-check--2026-10-30.md) blocked on exactly that
+  discrepancy; the manifest and this listing now agree, verified
+  from the packaged zips.)
 
 ## Privacy statement (store privacy fields + listing)
 

@@ -1,0 +1,12 @@
+pypdf>=4.0
+pdfminer.six>=20221105
+
+[api]
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+
+[dev]
+pytest>=8
+reportlab>=4
+httpx>=0.27

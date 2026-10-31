@@ -3,6 +3,9 @@
 const API = "http://127.0.0.1:8766";
 
 function renderOutline(nodes, depth, lines) {
+  // Gemini pre-store check (2026-10-30): cap recursion so a malformed
+  // or deeply nested API response cannot overflow the popup.
+  if (depth > 50) return lines;
   for (const node of nodes || []) {
     lines.push(
       "  ".repeat(depth) +

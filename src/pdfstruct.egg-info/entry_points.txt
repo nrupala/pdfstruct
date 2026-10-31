@@ -1,0 +1,4 @@
+[console_scripts]
+pdfstruct = pdfstruct.cli:main
+pdfstruct-api = pdfstruct.api:main
+pdfstruct-mcp = pdfstruct.mcp_server:main
