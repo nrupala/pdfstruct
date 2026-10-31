@@ -72,6 +72,16 @@ def call_tool(name, args):
 
 
 def handle(req):
+    # Adversarial-tester finding B-3 (2026-10-30): a non-object JSON
+    # message ([1,2,3], "hello", 123, null) crashed the server with
+    # AttributeError and killed the session. Framing-level garbage
+    # gets a JSON-RPC invalid-request error; the server stays alive.
+    if not isinstance(req, dict):
+        return {
+            "jsonrpc": "2.0", "id": None,
+            "error": {"code": -32600,
+                      "message": "invalid request: expected a JSON-RPC object"},
+        }
     method = req.get("method")
     rid = req.get("id")
     if method == "initialize":
@@ -120,6 +130,13 @@ def main() -> None:
         try:
             req = json.loads(line)
         except Exception:
+            continue
+        if isinstance(req, list):
+            # A JSON array is a legal JSON-RPC batch: answer each
+            # element, never die on the batch itself (finding B-3).
+            resps = [r for r in (handle(item) for item in req) if r is not None]
+            if resps:
+                print(json.dumps(resps), flush=True)
             continue
         resp = handle(req)
         if resp is not None:

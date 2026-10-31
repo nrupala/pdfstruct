@@ -20,15 +20,48 @@ continuation — and accepts "pypdf2" as a legacy engine alias.
 from __future__ import annotations
 
 import re
+import zlib
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
+
+# Adversarial-tester finding B-2 (2026-10-30): a 406 KB PDF whose content
+# stream inflates to ~104 MB killed the default pdfminer engine by OOM
+# (SIGKILL, no error). Extraction therefore pre-flights every document:
+# the total inflated size of its FlateDecode streams is measured with a
+# hard cap BEFORE any engine touches the file, and oversize-inflation
+# documents are refused cleanly on every surface (CLI, API, MCP).
+MAX_INFLATED_BYTES = 256 * 1024 * 1024
+
+_STREAM_RE = re.compile(rb"stream\r?\n(.*?)endstream", re.DOTALL)
+
+
+def check_inflation(pdf_path: str | Path) -> None:
+    """Raise ValueError if the PDF's streams inflate past the cap."""
+    data = Path(pdf_path).read_bytes()
+    total = 0
+    for match in _STREAM_RE.finditer(data):
+        chunk = match.group(1)
+        try:
+            inflater = zlib.decompressobj()
+            out = inflater.decompress(chunk, MAX_INFLATED_BYTES + 1 - total)
+        except zlib.error:
+            continue  # not a flate stream (e.g. a JPEG image) — skip
+        total += len(out)
+        if total > MAX_INFLATED_BYTES or inflater.unconsumed_tail:
+            raise ValueError(
+                "PDF streams inflate beyond the safety limit "
+                f"({MAX_INFLATED_BYTES // (1024 * 1024)} MB decompressed); "
+                "refusing to extract"
+            )
 
 __all__ = [
     "decode_value",
     "extract_pages",
     "get_metadata",
     "get_toc",
+    "get_toc_detailed",
+    "check_inflation",
     "detect_headings",
     "build_outline",
     "build_index",
@@ -141,10 +174,16 @@ def get_metadata(pdf_path: str | Path) -> dict[str, Any]:
         }
 
 
-def get_toc(pdf_path: str | Path) -> list[dict[str, Any]]:
-    """Flatten the PDF's own bookmarks/outline, with page numbers (1-based).
+def get_toc_detailed(
+    pdf_path: str | Path,
+) -> tuple[list[dict[str, Any]], Optional[str]]:
+    """Flatten the PDF's bookmarks, plus a warning when they were unreadable.
 
-    Returns an empty list when the document carries no outline.
+    Adversarial-tester finding B-4 (2026-10-30): bookmarks nested past
+    pypdf's depth limit raised inside the library and were silently
+    swallowed into an empty outline. The walk is now iterative (no
+    Python recursion limit of its own), and a library-side failure is
+    surfaced as a warning instead of silent total TOC loss.
     """
     import pypdf
 
@@ -153,40 +192,76 @@ def get_toc(pdf_path: str | Path) -> list[dict[str, Any]]:
         reader = pypdf.PdfReader(fh)
         try:
             outline = reader.outline
-        except Exception:
-            return []
+        except Exception as exc:
+            return [], (
+                "bookmarks unreadable "
+                f"({type(exc).__name__}); fell back to heading detection"
+            )
 
         flat: list[dict[str, Any]] = []
+        stack: list[tuple[Any, int]] = [(item, 1) for item in reversed(outline)]
+        while stack:
+            item, level = stack.pop()
+            if isinstance(item, list):
+                for child in reversed(item):
+                    stack.append((child, level + 1))
+                continue
+            title = getattr(item, "title", None)
+            if title is None:
+                continue
+            try:
+                page = reader.get_destination_page_number(item) + 1
+            except Exception:
+                page = None
+            flat.append(
+                {"title": str(title).strip(), "level": level, "page": page}
+            )
+        return flat, None
 
-        def walk(items: Iterable[Any], level: int) -> None:
-            for item in items:
-                if isinstance(item, list):
-                    walk(item, level + 1)
-                    continue
-                title = getattr(item, "title", None)
-                if title is None:
-                    continue
-                try:
-                    page = reader.get_destination_page_number(item) + 1
-                except Exception:
-                    page = None
-                flat.append(
-                    {"title": str(title).strip(), "level": level, "page": page}
-                )
 
-        walk(outline, 1)
-        return flat
+def get_toc(pdf_path: str | Path) -> list[dict[str, Any]]:
+    """Flatten the PDF's own bookmarks/outline, with page numbers (1-based).
+
+    Returns an empty list when the document carries no outline.
+    """
+    flat, _warning = get_toc_detailed(pdf_path)
+    return flat
 
 
 # ----------------------------------------------------------------- headings
 
+def _looks_like_title(rest: str) -> bool:
+    """Guard against prose lines that merely start like a heading.
+
+    Independent-tester findings F1/F2 (2026-10-30): a body sentence
+    "Chapter three body text." became a phantom chapter, and year-led
+    prose ("2024 Was a very good year for the whole team at home")
+    became a level-1 heading. Titles differ from sentences in three
+    cheap, checkable ways: they do not end with a full stop, most of
+    their words are capitalised when there are several of them, and
+    they are not a bare four-digit year plus words.
+    """
+    words = [w for w in rest.replace(".", " ").split() if any(c.isalpha() for c in w)]
+    if len(words) >= 3:
+        capitalised = sum(1 for w in words if w[:1].isupper())
+        if capitalised / len(words) < 0.5:
+            return False
+    return True
+
+
 def _heading_from_line(line: str) -> Optional[dict[str, Any]]:
     """Classify one line as a heading, or return None."""
+    stripped = line.strip()
+    # A sentence ends with a full stop; a heading does not.
+    if stripped.endswith("."):
+        return None
     match = _KEYWORD_RE.match(line)
     if match:
         kind_word, number, rest = match.group(1), match.group(2), match.group(3)
+        if rest and not _looks_like_title(rest):
+            return None
         kind = kind_word.lower()
-        title = line.strip()
+        title = stripped
         level = 2 if kind == "section" else 1
         return {"kind": kind, "level": level, "number": number, "title": title}
     match = _NUMBERED_RE.match(line)
@@ -199,12 +274,18 @@ def _heading_from_line(line: str) -> Optional[dict[str, Any]]:
             return None
         if sum(ch.isalpha() for ch in rest) < 3:
             return None
+        # A bare four-digit number is a year or a page count, not a
+        # heading number ("2024 Was a very good year..." — finding F2).
+        if "." not in number and int(number) >= 1000:
+            return None
+        if not _looks_like_title(rest):
+            return None
         level = min(number.count(".") + 1, 6)
         return {
             "kind": "numbered",
             "level": level,
             "number": number,
-            "title": line.strip(),
+            "title": stripped,
         }
     return None
 
@@ -310,6 +391,14 @@ def toc_outline(
         if page_end < page_start:
             page_end = page_start
         body = "\n".join(pages[page_start - 1 : page_end]).strip()
+        # Consistency with heading mode (tester finding F4): a node's
+        # text excludes its own heading line. In TOC mode the slice is
+        # page-granular, so when the segment opens with the bookmark's
+        # own title as a line, drop that one line.
+        if body:
+            first, _, rest_body = body.partition("\n")
+            if first.strip() == entry["title"].strip():
+                body = rest_body.strip()
         nodes.append(
             {
                 "title": entry["title"],
@@ -375,6 +464,7 @@ def extract_document(
     path = Path(pdf_path)
     if not path.is_file():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
+    check_inflation(path)
     pages = extract_pages(path, engine=engine)
     text = "\n".join(pages)
     try:
@@ -382,8 +472,9 @@ def extract_document(
     except Exception:
         metadata = {"pages": len(pages), "title": None, "author": None}
     toc = []
+    toc_warning: Optional[str] = None
     try:
-        toc = get_toc(path)
+        toc, toc_warning = get_toc_detailed(path)
     except Exception:
         toc = []
     if toc:
@@ -391,7 +482,7 @@ def extract_document(
         outline_source = "toc"
     else:
         outline, outline_source = build_outline(pages)
-    return {
+    doc: dict[str, Any] = {
         "source": str(path),
         "engine": engine,
         "text": text,
@@ -402,3 +493,6 @@ def extract_document(
         "structure": parse_structure(text),
         "index": build_index(text, concepts=concepts),
     }
+    if toc_warning:
+        doc["warnings"] = [toc_warning]
+    return doc

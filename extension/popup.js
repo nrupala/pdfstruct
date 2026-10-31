@@ -23,8 +23,25 @@ document.getElementById("go").addEventListener("click", async () => {
   const form = new FormData();
   form.append("file", file);
   out.textContent = "Working…";
+  // Adversarial code review (2026-10-30): the old catch-all reported
+  // every failure as "could not reach the API" — including the API
+  // rejecting the file (400) — and the fetch had no timeout. The three
+  // cases are now reported as what they are.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
   try {
-    const resp = await fetch(`${API}/outline`, { method: "POST", body: form });
+    const resp = await fetch(`${API}/outline`, {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+    });
+    if (resp.status === 400) {
+      const data = await resp.json().catch(() => ({}));
+      out.textContent =
+        "The local API could not read that PDF" +
+        (data.error ? `: ${data.error}` : ".");
+      return;
+    }
     if (!resp.ok) throw new Error(`local API returned ${resp.status}`);
     const data = await resp.json();
     const lines = renderOutline(data.outline, 0, []);
@@ -34,7 +51,11 @@ document.getElementById("go").addEventListener("click", async () => {
         : "No outline found (no bookmarks, no detectable headings).";
   } catch (err) {
     out.textContent =
-      "Could not reach the local PDFStruct API at " + API +
-      ". Start it with: pdfstruct-api";
+      err && err.name === "AbortError"
+        ? "The local API took too long to answer (20s timeout)."
+        : "Could not reach the local PDFStruct API at " + API +
+          ". Start it with: pdfstruct-api";
+  } finally {
+    clearTimeout(timer);
   }
 });

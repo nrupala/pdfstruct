@@ -35,7 +35,14 @@ def create_app():
     async def _load(file: UploadFile, engine: str, concepts: str | None):
         data = await file.read()
         with tempfile.TemporaryDirectory() as td:
-            src = Path(td) / (file.filename or "input.pdf")
+            # Adversarial-tester finding B-1 (2026-10-30, HIGH): the
+            # multipart filename was used as a write path unsanitised —
+            # an absolute or ../ filename wrote attacker bytes outside
+            # the temp dir (arbitrary-file overwrite). Only the base
+            # name is ever used now.
+            raw = (file.filename or "input.pdf").replace("\\", "/")
+            name = Path(raw).name or "input.pdf"
+            src = Path(td) / name
             src.write_bytes(data)
             concept_list = (
                 [c.strip() for c in concepts.split(",") if c.strip()]

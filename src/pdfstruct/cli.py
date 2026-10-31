@@ -59,16 +59,22 @@ def main(argv=None) -> int:
         print(f"Input file not found: {src}")
         return 1
 
-    if args.info:
-        meta = get_metadata(src)
-        print("PDF Metadata:")
-        for key in ("pages", "title", "author", "creator", "producer"):
-            print(f"- {key}: {meta.get(key)}")
+    # Tester finding F3: a corrupt PDF must produce a clean error and
+    # exit 1, never an uncaught traceback (the API already does this).
+    try:
+        if args.info:
+            meta = get_metadata(src)
+            print("PDF Metadata:")
+            for key in ("pages", "title", "author", "creator", "producer"):
+                print(f"- {key}: {meta.get(key)}")
 
-    formats = [f.strip().lower() for f in args.format.split(",") if f.strip()]
-    doc = extract_document(
-        src, engine=args.engine, concepts=_concepts_from_args(args)
-    )
+        formats = [f.strip().lower() for f in args.format.split(",") if f.strip()]
+        doc = extract_document(
+            src, engine=args.engine, concepts=_concepts_from_args(args)
+        )
+    except Exception as exc:
+        print(f"Error: could not decompose {src}: {exc}")
+        return 1
     out_dir = (
         Path(args.output_dir)
         if args.output_dir

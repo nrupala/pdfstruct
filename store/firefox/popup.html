@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PDFStruct</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>PDFStruct</h1>
+  <p class="note">Needs your local API running: <code>pdfstruct-api</code> (127.0.0.1:8766).</p>
+  <input type="file" id="file" accept="application/pdf">
+  <button id="go" type="button">Show outline</button>
+  <pre id="out" aria-live="polite"></pre>
+  <script src="popup.js"></script>
+</body>
+</html>

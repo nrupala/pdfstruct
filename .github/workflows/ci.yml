@@ -19,3 +19,5 @@ jobs:
         run: pip install -e ".[api,dev]"
       - name: Test
         run: python -m pytest -q
+      - name: Extension smoke
+        run: node tests/extension_smoke.mjs
