@@ -1,7 +1,13 @@
 {
  "action": {
   "default_popup": "popup.html",
-  "default_title": "PDFStruct"
+  "default_title": "PDFStruct",
+  "default_icon": {
+   "16": "icons/icon16.png",
+   "32": "icons/icon32.png",
+   "48": "icons/icon48.png",
+   "128": "icons/icon128.png"
+  }
  },
  "description": "See a PDF's outline tree via your local PDFStruct API. Fully local; needs pdfstruct-api running.",
  "host_permissions": [
@@ -11,6 +17,12 @@
  "manifest_version": 3,
  "name": "PDFStruct",
  "version": "0.1.0",
+ "icons": {
+  "16": "icons/icon16.png",
+  "32": "icons/icon32.png",
+  "48": "icons/icon48.png",
+  "128": "icons/icon128.png"
+ },
  "browser_specific_settings": {
   "gecko": {
    "id": "pdfstruct@aimlds.org",
