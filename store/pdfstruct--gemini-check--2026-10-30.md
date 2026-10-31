@@ -68,3 +68,50 @@ input to the gate, not Wright's edit of it.
 Filed 2026-10-30 by Wright (registrar for the check; no finding
 softened, none fixed in this step — remediation belongs to the
 submission lane acting on this record).
+
+---
+
+## Re-check after remediation (2026-10-30)
+
+**Outcome: PASS** (per Gemini — all four original items RESOLVED.)
+
+Reviewer: Gemini, via the fleet's Gemini connector lane
+(`~/workspace/custom-connectors/custom.gemini/bin/gemini.py`, default
+model `gemini-3.8-flash`, one compact call, temperature 0.2; lane
+proven live with `--list-models` immediately before the call).
+Material put to Gemini: the remediated manifest (host_permissions
+only `http://127.0.0.1:8766/*`, no `permissions` key), the remediated
+popup.js (renderOutline depth cap at 50, loopback-only fetch), the
+rewritten permission-justification section of store/listing.md, the
+new store/REVIEWER-NOTES.md (setup path + the review wheel
+`pdfstruct-0.1.0-py3-none-any.whl` accompanying the submission's test
+instructions + the designed no-backend message documented), and the
+rebuilt zips' verified contents (each zip: manifest.json, popup.html,
+popup.js, popup.css, icons/ ×4 — verified from the zips themselves
+before the call).
+
+Gemini's re-check, in its own words:
+
+### Original Items Evaluation
+
+1. **Permission metadata discrepancy (`activeTab`)**: **RESOLVED** — `listing.md` now explicitly states no API permissions (`activeTab`, etc.) are requested, aligning with the manifest's omitted `permissions` key.
+2. **`host_permissions` overdeclaration (`localhost` vs `127.0.0.1`)**: **RESOLVED** — `manifest.json` restricts `host_permissions` strictly to `["http://127.0.0.1:8766/*"]`, matching the single origin fetched in `popup.js`.
+3. **Minimum functionality / store-review risk**: **RESOLVED** — `store/REVIEWER-NOTES.md` documents expected standalone/offline behavior, companion architecture, and provides clear verification steps using the attached `pdfstruct-0.1.0-py3-none-any.whl` wheel.
+4. **Recursion depth limit in `renderOutline`**: **RESOLVED** — `popup.js` enforces a strict recursion depth ceiling (`if (depth > 50) return lines;`), mitigating stack overflow from cyclic or deep structures.
+
+---
+
+### Axes Assessment
+
+* **Permissions vs Function**: Minimal and precise; declares only `http://127.0.0.1:8766/*`, perfectly matching popup POST traffic.
+* **Privacy Truthfulness**: Completely accurate; strictly local loopback transport, no tracking, and no external data exfiltration pathways.
+* **Store-Review Risk**: Controlled; review notes manage the lack of an immediate cloud backend, clarify error states, and supply the local runtime package.
+* **Security**: Sound; strict DOM construction via `textContent`, fetch timeout via `AbortController`, bounded recursion depth, and zero inline script injection vectors.
+
+---
+
+PASS: All previous blockers and security observations have been fully remediated with strict least-privilege declarations and complete review documentation.
+
+Filed 2026-10-30 by the re-check lane (registrar for this section;
+Gemini's text recorded verbatim, nothing softened, nothing fixed in
+this step).

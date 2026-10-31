@@ -26,7 +26,16 @@ def create_app():
         )
     from .core import extract_document
 
-    app = FastAPI(title="PDFStruct API", version=__version__)
+    app = FastAPI(
+        title="PDFStruct API",
+        version=__version__,
+        description=(
+            "Local API for PDFStruct: decomposes a PDF into a hierarchical "
+            "outline tree (chapters, appendices, parts, sections) with page "
+            "ranges, section text and decoded metadata. Runs entirely on "
+            "your own machine; no cloud, no account, no upload."
+        ),
+    )
 
     @app.get("/health")
     def health():

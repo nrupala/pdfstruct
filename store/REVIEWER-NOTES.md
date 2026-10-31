@@ -6,11 +6,12 @@ by design — the same pattern as other local-companion extensions.
 
 To exercise the full flow:
 
-1. Install the local API (Apache-2.0). The review build of the API
-   package accompanies this submission in the store's test
-   instructions (the public release follows the store listing);
-   install it with `pip install pdfstruct-0.1.0-py3-none-any.whl`,
-   or run it from the included source tree.
+1. Install the local API (Apache-2.0, open source). The review
+   build `pdfstruct-0.1.0-py3-none-any.whl` is available from the
+   publisher on request (info@aimlds.org) while the public release
+   completes; install it with
+   `pip install pdfstruct-0.1.0-py3-none-any.whl`, or run the API
+   from its source tree.
 2. Start it: `pdfstruct-api` (listens on http://127.0.0.1:8766).
 3. Open the extension popup, choose any PDF, click "Show outline".
    The popup POSTs the file to the local API and renders the

@@ -43,3 +43,17 @@ no store presence may rest on a single undocumented sign-in.
   nothing credential-shaped is written in this file, by design.
 - Any platform rejecting Wise for payouts is reported to the owner;
   fallbacks are named exceptions, never silent reroutes.
+
+## Chrome Web Store — account of record (added 2026-10-30)
+
+- Sign-in: nrupalakolkar@gmail.com (owner's Google account; 2-Step on the account).
+- Publisher ID: 62bf6802-a90d-4eb3-9cf2-432149c91022. Display name: AIMLDS.
+- Verified organisation (Google payments profile, same as Play Console):
+  2351485 Alberta Inc., 166 Panatella Blvd NW, Calgary, AB T3K 6B5, CA;
+  D-U-N-S 208601036; phone +1 780-880-1326 (SMS-verified 2026-10-30).
+- Trader declaration: trader account (business publisher).
+- Contact email: info@aimlds.org (publicly displayed; verification link
+  sent 2026-10-30 ~22:47 MDT — status to be updated on click).
+- Recovery: Google account recovery on nrupalakolkar@gmail.com; Chrome
+  developer accounts have a single owner — protect that account's 2-Step.
+- Registration fee: US$5 paid 2026-10-30 by the owner (Amex ••1454).
