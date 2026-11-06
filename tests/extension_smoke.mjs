@@ -22,6 +22,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 const engine = require("../extension/engine.js");
 const bank = require("../extension/bank.js");
 const talk = require("../extension/talk.js");
+const docstore = require("../extension/docstore.js");
 
 let failures = 0;
 function check(name, cond) {
@@ -276,6 +277,83 @@ check("guard: sentence-like numbered line rejected",
     (await adapter.listContainers()).length === 0);
 }
 
+// ------------------------------------------------- downloads (F1)
+// Browser proof 2026-11-05, defect F1: every download button in the
+// real browser produced no file — downloadBytes() clicked a
+// DETACHED anchor, which Chrome extension pages ignore (the
+// workspace and this popup each carried a private copy). The
+// helper now lives in docstore.js (the one non-vendor script both
+// pages load): it must attach the anchor before clicking, remove
+// it after, and fail LOUDLY (visible notice + false return,
+// Gate 12) when a download cannot start. The stub DOM records
+// attachment at click time — on the detached-anchor code the
+// central check below fails.
+{
+  function makeDownloadDom(throwForTag) {
+    const created = [];
+    const body = {
+      children: [],
+      appendChild(node) {
+        if (node.tag === throwForTag) {
+          throw new Error("append refused for " + node.tag);
+        }
+        node.parentNode = body;
+        body.children.push(node);
+      },
+    };
+    return {
+      body, created,
+      getElementById: (id) =>
+        created.find((e) => e.id === id) || null,
+      createElement: (tag) => {
+        const el = {
+          tag, parentNode: null, style: {}, attrs: {},
+          get isConnected() { return this.parentNode != null; },
+          setAttribute(k, v) { this.attrs[k] = v; },
+          click() {
+            this.attachedAtClick = this.isConnected;
+            this.clicked = true;
+          },
+          remove() {
+            if (this.parentNode) {
+              const i = this.parentNode.children.indexOf(this);
+              if (i >= 0) this.parentNode.children.splice(i, 1);
+              this.parentNode = null;
+            }
+          },
+        };
+        created.push(el);
+        return el;
+      },
+    };
+  }
+
+  const dom = makeDownloadDom(null);
+  globalThis.document = dom;
+  const okDl = docstore.downloadBytes("result.txt", "hello", "text/plain");
+  const anchor = dom.created.find((e) => e.tag === "a");
+  check("downloads: helper reports success", okDl === true);
+  check("downloads: anchor attached at click time (F1)",
+    !!anchor && anchor.clicked === true &&
+    anchor.attachedAtClick === true);
+  check("downloads: anchor removed after the click",
+    !!anchor && anchor.parentNode === null &&
+    !dom.body.children.includes(anchor));
+  check("downloads: anchor carries the file name",
+    !!anchor && anchor.download === "result.txt");
+
+  const bad = makeDownloadDom("a");
+  globalThis.document = bad;
+  const okBad = docstore.downloadBytes("result.txt", "hello",
+    "text/plain");
+  const notice = bad.created.find((e) => e.id === "dl-notice");
+  check("downloads: a failed start returns false (Gate 12)",
+    okBad === false);
+  check("downloads: a failed start is loud in the page (Gate 12)",
+    !!notice && /could not start/.test(notice.textContent || ""));
+  delete globalThis.document;
+}
+
 // ------------------------------------------------------- popup behaviour
 function makePopupWorld(pageCount) {
   const els = {};
@@ -316,6 +394,7 @@ function makePopupWorld(pageCount) {
       tabs: { create: (o) => { calls.tabsCreated.push(o.url); } },
     },
     URL: { createObjectURL: () => "blob:x", revokeObjectURL: () => {} },
+    downloadBytes: () => true,
     Blob, setTimeout, console,
   };
   sandbox.globalThis = sandbox;
@@ -344,6 +423,140 @@ function makePopupWorld(pageCount) {
     els.out.textContent.includes("workspace"));
 }
 
+// ---------------------------------- popup flow, real engine (F1 + F2)
+// The stub-engine world above cannot see either browser-proof
+// defect class: F1 lives in the download helper's DOM behaviour
+// and F2 in pdf.js's buffer TRANSFER (the browser worker detaches
+// the buffer handed to getDocument; Node's in-process worker does
+// not). This section runs the REAL popup.js against the REAL
+// engine and the REAL docstore download helper, with (a) a
+// getDocument wrapper reproducing the browser's transfer semantics
+// and (b) a DOM that records whether the download anchor was
+// attached when clicked. PDFStruct's popup spent one buffer on
+// countPages and then extracted from it — the same pattern as
+// pdfx defect F2, latent here because the proof only sent the
+// popup a 240-page file (which routes away before extraction).
+{
+  const simPdfjs = {
+    GlobalWorkerOptions: pdfjsLib.GlobalWorkerOptions,
+    getDocument: (params) => {
+      const data = params && params.data;
+      if (data && data.buffer instanceof ArrayBuffer &&
+          data.byteLength > 0) {
+        const copy = data.slice();
+        try {
+          structuredClone(data.buffer, { transfer: [data.buffer] });
+        } catch (e) { /* already detached — nothing to simulate */ }
+        return pdfjsLib.getDocument({ ...params, data: copy });
+      }
+      return pdfjsLib.getDocument(params);
+    },
+  };
+
+  // Control: the simulation must bite — the one-buffer pattern
+  // has to fail under it.
+  {
+    const bytes = fixture("sample_book.pdf");
+    await engine.countPages(simPdfjs, bytes);
+    let threw = false;
+    try {
+      await engine.extractDocument(
+        simPdfjs, bytes, "sample_book.pdf", null);
+    } catch (e) { threw = true; }
+    check("popup F2 control: a spent buffer cannot be re-used", threw);
+  }
+
+  const els = {};
+  const mk = (id) => (els[id] = {
+    files: [], style: {}, textContent: "", listeners: {},
+    addEventListener(ev, fn) { this.listeners[ev] = fn; },
+  });
+  ["file", "go", "workspace", "prog", "out", "downloads",
+   "dl-json", "dl-md", "dl-txt"].forEach(mk);
+  const raw = readFileSync(
+    new URL("./fixtures/sample_book.pdf", import.meta.url));
+  els.file.files = [{
+    name: "sample_book.pdf",
+    // A real File returns a FRESH buffer from every read.
+    arrayBuffer: async () => new Uint8Array(raw).buffer,
+  }];
+  const created = [];
+  const body = {
+    children: [],
+    appendChild(node) {
+      node.parentNode = body;
+      body.children.push(node);
+    },
+  };
+  const documentStub = {
+    body,
+    getElementById: (id) => els[id] ||
+      created.find((e) => e.id === id) || null,
+    createElement: (tag) => {
+      const el = {
+        tag, parentNode: null, style: {}, attrs: {},
+        get isConnected() { return this.parentNode != null; },
+        setAttribute(k, v) { this.attrs[k] = v; },
+        click() {
+          this.attachedAtClick = this.isConnected;
+          this.clicked = true;
+        },
+        remove() {
+          if (this.parentNode) {
+            const i = this.parentNode.children.indexOf(this);
+            if (i >= 0) this.parentNode.children.splice(i, 1);
+            this.parentNode = null;
+          }
+        },
+      };
+      created.push(el);
+      return el;
+    },
+  };
+  const calls = { put: 0, tabsCreated: [] };
+  const sandbox = {
+    document: documentStub,
+    pdfjsLib: simPdfjs,
+    PdfStructEngine: engine,
+    PdfStructDocStore: {
+      put: async () => { calls.put++; },
+      get: async () => null, forget: async () => {},
+    },
+    downloadBytes: docstore.downloadBytes,
+    chrome: {
+      runtime: {
+        getURL: (p) => p.endsWith("pdf.worker.min.js")
+          ? require.resolve("../extension/vendor/pdf.worker.min.js")
+          : "chrome-extension://x/" + p,
+      },
+      tabs: { create: (o) => { calls.tabsCreated.push(o.url); } },
+    },
+    URL, Blob, setTimeout, console,
+  };
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(
+    readFileSync(new URL("../extension/popup.js", import.meta.url),
+      "utf8"),
+    sandbox);
+
+  await els.go.listeners.click();
+  check("popup F2: small book decomposes end to end",
+    els.out.textContent.includes("Chapter 1 Foundations") &&
+    !/detached|Could not/i.test(els.out.textContent));
+  // The shared helper executes in THIS realm (it was required, not
+  // loaded into the vm), so its `document` is the main global —
+  // install the same stub there for the download click.
+  globalThis.document = documentStub;
+  await els["dl-json"].listeners.click();
+  delete globalThis.document;
+  const dlAnchor = created.find((e) => e.tag === "a");
+  check("popup F1: download anchor attached at click time",
+    !!dlAnchor && dlAnchor.clicked === true &&
+    dlAnchor.attachedAtClick === true &&
+    dlAnchor.download === "sample_book.json");
+}
+
 // ------------------------------------------------------------ static law
 {
   const ext = (p) =>
@@ -354,7 +567,17 @@ function makePopupWorld(pageCount) {
   check("manifest: exactly one host permission (licence validation)",
     JSON.stringify(manifest.host_permissions) ===
       JSON.stringify(["https://aimlds.org/*"]));
-  check("manifest: version 0.2.0", manifest.version === "0.2.0");
+  check("manifest: version 0.2.1", manifest.version === "0.2.1");
+  check("downloads: one central helper, in docstore.js (F1)",
+    ext("docstore.js").includes("function downloadBytes") &&
+    ext("docstore.js").includes("appendChild(a)") &&
+    ext("docstore.js").includes("dl-notice"));
+  check("downloads: workspace keeps no private copy (F1)",
+    !ext("workspace.js").includes("function downloadBytes"));
+  check("downloads: popup keeps no private anchor (F1)",
+    !ext("popup.js").includes('createElement("a")'));
+  check("popup: fresh bytes per pdf.js call (F2 class)",
+    ext("popup.js").includes("await file.arrayBuffer()"));
   const code = ["popup.js", "workspace.js", "engine.js", "docstore.js"]
     .map(ext).join("\n");
   check("no loopback reference in extension code",

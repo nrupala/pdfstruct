@@ -2,6 +2,31 @@
 
 Copyright © 2026 2351485 ALBERTA INC.
 
+## [Extension 0.2.1] — 2026-11-05
+
+Two fixes, both found by testing 0.2.0 in a real browser:
+downloads work again (every download button produced no file),
+and the popup's small-file decomposition is fixed (its
+page-count probe spent the buffer the extraction needed).
+
+### Fixed
+
+- Downloads produced no file anywhere in the extension —
+  workspace downloads, per-section and knowledgebank item
+  downloads, bank/container exports and the popup's own
+  downloads all clicked an anchor never attached to the
+  document, which Chrome extension pages ignore (browser proof
+  2026-11-05, defect F1). One shared helper now lives in
+  `docstore.js` (loaded by both pages): attach the anchor,
+  click, remove it; if a download still cannot start, the page
+  says so visibly instead of failing silently.
+- The popup carried the same detached-buffer pattern as pdfx's
+  defect F2: its page-count probe spent the one buffer the
+  extraction then needed. It stayed latent because pre-release
+  popup testing used a 240-page file, which routes to the
+  workspace before extraction. The popup now reads fresh bytes
+  from the File for every pdf.js call, as the workspace does.
+
 ## [Extension 0.2.0] — 2026-11-05
 
 The extension is now self-contained: the decomposition engine runs

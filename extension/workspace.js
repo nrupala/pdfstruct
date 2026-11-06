@@ -46,14 +46,10 @@ function el(tag, text, cls) {
   return e;
 }
 
-function downloadBytes(name, bytes, type) {
-  const url = URL.createObjectURL(new Blob([bytes], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
-}
+// Downloads go through the shared downloadBytes() in docstore.js
+// (attached-anchor click; the detached-anchor copy that lived here
+// silently produced no file in a real browser — defect F1,
+// browser proof 2026-11-05).
 
 function fillColorSelect(sel) {
   sel.innerHTML = "";

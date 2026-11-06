@@ -83,15 +83,14 @@ territory.
 scripts and pipelines: https://github.com/nrupala/pdfstruct. The
 extension does not need it; it is there if you want it.
 
-## What's new (0.2.0)
+## What's new (0.2.1)
 
-The extension is now self-contained: the decomposition engine runs
-entirely in your browser (no companion app to install or start),
-large documents open in a full-tab workspace — outline tree on the
-left, section text on the right — with page-by-page progress and
-no time limit, and .json/.md/.txt downloads are produced in the
-browser. This text copies the CHANGELOG entry for Extension 0.2.0
-verbatim, per the update-chain rule.
+Two fixes, both found by testing 0.2.0 in a real browser:
+downloads work again (every download button produced no file),
+and the popup's small-file decomposition is fixed (its
+page-count probe spent the buffer the extraction needed). This
+text copies the CHANGELOG entry for Extension 0.2.1 verbatim,
+per the update-chain rule.
 
 ## Category suggestion
 

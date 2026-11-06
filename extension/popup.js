@@ -56,12 +56,11 @@ function download(fmt) {
       ? PdfStructEngine.toMarkdown(doc)
       : PdfStructEngine.toText(doc);
   const type = fmt === "json" ? "application/json" : "text/plain";
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${PdfStructEngine.stemOf(doc.source)}.${fmt}`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  // Shared helper in docstore.js (attached-anchor click; the
+  // detached anchor this replaced silently produced no file in a
+  // real browser — defect F1, browser proof 2026-11-05).
+  downloadBytes(`${PdfStructEngine.stemOf(doc.source)}.${fmt}`,
+    content, type);
 }
 
 $("go").addEventListener("click", async () => {
@@ -72,9 +71,14 @@ $("go").addEventListener("click", async () => {
     return;
   }
   try {
-    const buf = await file.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    const pages = await PdfStructEngine.countPages(lib, bytes);
+    // Buffer discipline (same class as pdfx defect F2, browser
+    // proof 2026-11-05): pdf.js TRANSFERS the buffer handed to
+    // getDocument to its worker, detaching the caller's copy — a
+    // buffer spent on the page-count probe is dead before
+    // extraction starts. Read FRESH bytes from the File for every
+    // pdf.js call, exactly as the workspace does.
+    const pages = await PdfStructEngine.countPages(
+      lib, new Uint8Array(await file.arrayBuffer()));
     if (pages > WORKSPACE_PAGE_LIMIT) {
       await PdfStructDocStore.put(file, file.name);
       openWorkspace();
@@ -85,7 +89,8 @@ $("go").addEventListener("click", async () => {
       return;
     }
     lastDoc = await PdfStructEngine.extractDocument(
-      lib, bytes, file.name, setProgress);
+      lib, new Uint8Array(await file.arrayBuffer()), file.name,
+      setProgress);
     setProgress(0, 0);
     const lines = renderOutline(lastDoc.outline, 0, []);
     out.textContent = lines.length > 0

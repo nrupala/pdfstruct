@@ -81,8 +81,66 @@
     put: (key, value) => store.put("settings", key, value),
   };
 
-  const api = { store, docStore, bank, settings };
+  // ---------------------------------------------------------- downloads
+  // The one download path for every page of this extension. This
+  // file is the only non-vendor script loaded by BOTH the popup and
+  // the workspace, so the helper lives here and nowhere else.
+  //
+  // Why the ceremony: Chrome extension pages ignore clicks on
+  // DETACHED anchors (an <a> created but never appended). The 0.2.0
+  // build clicked a detached anchor and every download button in
+  // the product silently produced no file — proven in the owner's
+  // real browser (browser proof 2026-11-05, defect F1). The anchor
+  // is therefore attached, clicked, then removed.
+  //
+  // Gate 12 (loud failure): if a download cannot start, the helper
+  // says so visibly in the page (and on the console) and returns
+  // false — it never fails in silence.
+  function noteDownloadFailure(name, err) {
+    const msg = `Download of ${name} could not start — nothing was ` +
+      `saved. (${(err && err.message) || err})`;
+    try { console.error(msg); } catch (e) { /* console unavailable */ }
+    try {
+      let n = document.getElementById("dl-notice");
+      if (!n) {
+        n = document.createElement("div");
+        n.id = "dl-notice";
+        n.setAttribute("role", "alert");
+        n.style.cssText = "position:sticky;bottom:0;z-index:999;" +
+          "padding:8px 10px;margin-top:8px;background:#7f1d1d;" +
+          "color:#fff;font-weight:600;";
+        document.body.appendChild(n);
+      }
+      n.textContent = msg;
+      n.style.display = "block";
+    } catch (e) { /* no page to tell — the console line stands */ }
+  }
+
+  function downloadBytes(name, bytes, type) {
+    let url = null;
+    try {
+      url = URL.createObjectURL(new Blob([bytes], { type }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      if (!a.isConnected) {
+        throw new Error("the download link did not attach to the page");
+      }
+      a.click();
+      a.remove();
+      return true;
+    } catch (e) {
+      noteDownloadFailure(name, e);
+      return false;
+    } finally {
+      if (url) setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+  }
+
+  const api = { store, docStore, bank, settings, downloadBytes };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PdfStructDocStore = docStore;
   root.PdfStructStorage = api;
+  root.downloadBytes = downloadBytes;
 })(typeof self !== "undefined" ? self : globalThis);
