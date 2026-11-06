@@ -7,10 +7,20 @@
 </head>
 <body>
   <h1>PDFStruct</h1>
-  <p class="note">Needs your local API running: <code>pdfstruct-api</code> (127.0.0.1:8766).</p>
+  <p class="note">Runs entirely in your browser — no companion app, nothing uploaded. Documents over 25 pages open in the workspace tab.</p>
   <input type="file" id="file" accept="application/pdf">
   <button id="go" type="button">Show outline</button>
+  <button id="workspace" type="button">Open in workspace</button>
+  <p id="prog" aria-live="polite"></p>
   <pre id="out" aria-live="polite"></pre>
+  <div id="downloads" style="display:none">
+    <button id="dl-json" type="button">Download .json</button>
+    <button id="dl-md" type="button">Download .md</button>
+    <button id="dl-txt" type="button">Download .txt</button>
+  </div>
+  <script src="vendor/pdf.min.js"></script>
+  <script src="engine.js"></script>
+  <script src="docstore.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

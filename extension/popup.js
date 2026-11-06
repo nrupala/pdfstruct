@@ -1,64 +1,110 @@
-// PDFStruct extension: sends the chosen PDF to the user's own local API
-// and renders the returned outline tree. Nothing leaves the machine.
-const API = "http://127.0.0.1:8766";
+"use strict";
+/*
+ * PDFStruct popup — self-contained since 0.2.0.
+ *
+ * The outline is computed in this browser via the vendored pdf.js
+ * engine (engine.js). There is no local API and nothing to install
+ * or start: the pre-0.2.0 design POSTed the PDF to a companion API
+ * process on the loopback interface and died at a fixed 20-second
+ * timeout on a several-hundred-page textbook (owner's book,
+ * 2026-11-05). That failure shape is designed out here: there is no
+ * timeout anywhere, small documents extract page by page with
+ * progress in this popup, and documents over 25 pages are routed to
+ * the workspace tab, where a long extraction cannot be killed by
+ * the popup closing.
+ */
+const WORKSPACE_PAGE_LIMIT = 25;
+
+const lib = globalThis.pdfjsLib;
+if (lib && typeof chrome !== "undefined" && chrome.runtime) {
+  lib.GlobalWorkerOptions.workerSrc =
+    chrome.runtime.getURL("vendor/pdf.worker.min.js");
+}
+
+let lastDoc = null;
+const $ = (id) => document.getElementById(id);
+
+function setProgress(page, total) {
+  $("prog").textContent = total
+    ? `Reading… page ${page} of ${total}`
+    : "";
+}
 
 function renderOutline(nodes, depth, lines) {
-  // Gemini pre-store check (2026-10-30): cap recursion so a malformed
-  // or deeply nested API response cannot overflow the popup.
+  // Cap recursion so a deeply nested outline cannot overflow the
+  // popup (adversarial-review fix, retained from the API design).
   if (depth > 50) return lines;
   for (const node of nodes || []) {
     lines.push(
       "  ".repeat(depth) +
-        `${node.title} (p. ${node.page_start}-${node.page_end})`
-    );
+        `${node.title} (p. ${node.page_start}-${node.page_end})`);
     renderOutline(node.children, depth + 1, lines);
   }
   return lines;
 }
 
-document.getElementById("go").addEventListener("click", async () => {
-  const out = document.getElementById("out");
-  const file = document.getElementById("file").files[0];
+function openWorkspace() {
+  chrome.tabs.create({ url: chrome.runtime.getURL("workspace.html") });
+}
+
+function download(fmt) {
+  if (!lastDoc) return;
+  const doc = lastDoc;
+  const content = fmt === "json"
+    ? PdfStructEngine.toJson(doc)
+    : fmt === "md"
+      ? PdfStructEngine.toMarkdown(doc)
+      : PdfStructEngine.toText(doc);
+  const type = fmt === "json" ? "application/json" : "text/plain";
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${PdfStructEngine.stemOf(doc.source)}.${fmt}`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+$("go").addEventListener("click", async () => {
+  const out = $("out");
+  const file = $("file").files[0];
   if (!file) {
     out.textContent = "Choose a PDF first.";
     return;
   }
-  const form = new FormData();
-  form.append("file", file);
-  out.textContent = "Working…";
-  // Adversarial code review (2026-10-30): the old catch-all reported
-  // every failure as "could not reach the API" — including the API
-  // rejecting the file (400) — and the fetch had no timeout. The three
-  // cases are now reported as what they are.
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20000);
   try {
-    const resp = await fetch(`${API}/outline`, {
-      method: "POST",
-      body: form,
-      signal: controller.signal,
-    });
-    if (resp.status === 400) {
-      const data = await resp.json().catch(() => ({}));
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    const pages = await PdfStructEngine.countPages(lib, bytes);
+    if (pages > WORKSPACE_PAGE_LIMIT) {
+      await PdfStructDocStore.put(file, file.name);
+      openWorkspace();
       out.textContent =
-        "The local API could not read that PDF" +
-        (data.error ? `: ${data.error}` : ".");
+        `“${file.name}” has ${pages} pages — opened in the workspace ` +
+        "tab, where large books decompose with progress.";
+      setProgress(0, 0);
       return;
     }
-    if (!resp.ok) throw new Error(`local API returned ${resp.status}`);
-    const data = await resp.json();
-    const lines = renderOutline(data.outline, 0, []);
-    out.textContent =
-      lines.length > 0
-        ? lines.join("\n")
-        : "No outline found (no bookmarks, no detectable headings).";
+    lastDoc = await PdfStructEngine.extractDocument(
+      lib, bytes, file.name, setProgress);
+    setProgress(0, 0);
+    const lines = renderOutline(lastDoc.outline, 0, []);
+    out.textContent = lines.length > 0
+      ? lines.join("\n")
+      : "No outline found (no bookmarks, no detectable headings).";
+    $("downloads").style.display = "block";
   } catch (err) {
+    setProgress(0, 0);
     out.textContent =
-      err && err.name === "AbortError"
-        ? "The local API took too long to answer (20s timeout)."
-        : "Could not reach the local PDFStruct API at " + API +
-          ". Start it with: pdfstruct-api";
-  } finally {
-    clearTimeout(timer);
+      `Could not read that PDF: ${err.message || err}`;
   }
 });
+
+$("workspace").addEventListener("click", async () => {
+  const file = $("file").files[0];
+  if (file) await PdfStructDocStore.put(file, file.name);
+  openWorkspace();
+});
+
+$("dl-json").addEventListener("click", () => download("json"));
+$("dl-md").addEventListener("click", () => download("md"));
+$("dl-txt").addEventListener("click", () => download("txt"));

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PDFStruct — Workspace</title>
+  <link rel="stylesheet" href="workspace.css">
+</head>
+<body>
+<header>
+  <h1>PDFStruct — Workspace</h1>
+  <p class="note">Decomposition runs entirely in this browser tab. Nothing is uploaded, and there is no companion app to start. A several-hundred-page book belongs here: it is read page by page with progress, for as long as it takes — no timeout, and no popup to close on it. Sections you file form your knowledgebank — stored only in this browser, exportable at any time.</p>
+  <div class="toolbar">
+    <input type="file" id="file" accept="application/pdf">
+    <span class="hint">…or drop a PDF anywhere on this page.</span>
+    <button id="forget" style="display:none">Forget document</button>
+    <span class="views">
+      <button id="view-doc" class="viewbtn selected">Document</button>
+      <button id="view-bank" class="viewbtn">Knowledgebank</button>
+      <button id="view-settings" class="viewbtn">About / Settings</button>
+    </span>
+  </div>
+  <div id="progresswrap" style="display:none">
+    <progress id="bar" value="0" max="1"></progress>
+    <span id="progtext"></span>
+  </div>
+</header>
+
+<section id="docview">
+  <h2 id="doctitle"></h2>
+  <p id="docmeta" class="note"></p>
+  <div id="downloads" style="display:none">
+    Download:
+    <button data-fmt="json">Outline (.json)</button>
+    <button data-fmt="md">Markdown (.md)</button>
+    <button data-fmt="txt">Full text (.txt)</button>
+    <button data-fmt="docx">Word (.docx)</button>
+    <button id="file-all">File all sections…</button>
+  </div>
+  <main>
+    <aside id="tree-pane">
+      <input type="search" id="search" placeholder="Search the outline…">
+      <div id="tree"><p class="note">No document yet.</p></div>
+    </aside>
+    <section id="reader">
+      <h3 id="nodetitle">Section</h3>
+      <p id="nodemeta" class="note"></p>
+      <pre id="nodetext"></pre>
+      <div id="talk-doc" class="talkbox" style="display:none">
+        <h3>Talk to this section</h3>
+        <div class="talkrow">
+          <input id="talk-doc-q" type="text" placeholder="Ask about this section…">
+          <button id="talk-doc-ask">Ask</button>
+        </div>
+        <div id="talk-doc-a" class="talkanswer"></div>
+      </div>
+    </section>
+  </main>
+</section>
+
+<section id="bankview" style="display:none">
+  <div id="bank-grid">
+    <aside id="bank-nav">
+      <h3>Containers</h3>
+      <div id="bank-containers"></div>
+      <div class="newcontainer">
+        <input id="nc-name" type="text" placeholder="New container name">
+        <select id="nc-color"></select>
+        <button id="nc-add">Add</button>
+      </div>
+      <h3>Tags</h3>
+      <div id="bank-tags"></div>
+      <h3>Export</h3>
+      <div id="bank-export">
+        <button id="exp-bank-json">Whole bank (.json)</button>
+        <button id="exp-bank-md">Whole bank (.md)</button>
+        <button id="exp-cont-json">This container (.json)</button>
+        <button id="exp-cont-md">This container (.md)</button>
+      </div>
+    </aside>
+    <section id="bank-list-pane">
+      <input id="bank-search" type="search" placeholder="Search filed text…">
+      <div id="bank-items"></div>
+    </section>
+    <section id="bank-reader">
+      <h3 id="bi-title">Knowledgebank</h3>
+      <p id="bi-meta" class="note">Pick a filed section to read it here. Its generated .json/.md/.txt/.docx live with it, downloadable anytime.</p>
+      <div id="bi-artifacts" style="display:none">
+        Download:
+        <button data-art="json">.json</button>
+        <button data-art="md">.md</button>
+        <button data-art="txt">.txt</button>
+        <button data-art="docx">.docx</button>
+        <button id="bi-edit">Edit item</button>
+        <button id="bi-delete">Delete item</button>
+      </div>
+      <p id="bi-notes" class="note"></p>
+      <div id="bi-editor" style="display:none">
+        <label>Title <input id="ed-title" type="text"></label>
+        <label>Tags <input id="ed-tags" type="text" placeholder="comma-separated"></label>
+        <div id="ed-containers"></div>
+        <label>Notes <textarea id="ed-notes" rows="2"></textarea></label>
+        <label>Working text (corrections land in every output — artifacts regenerate from this text)
+          <textarea id="ed-text" rows="10"></textarea></label>
+        <div class="ed-actions">
+          <button id="ed-save">Save</button>
+          <button id="ed-saveas">Save as copy</button>
+          <button id="ed-cancel">Cancel</button>
+        </div>
+      </div>
+      <pre id="bi-text"></pre>
+      <div id="talk-bank" class="talkbox" style="display:none">
+        <h3>Talk to this section</h3>
+        <div class="talkrow">
+          <input id="talk-bank-q" type="text" placeholder="Ask about this section…">
+          <button id="talk-bank-ask">Ask</button>
+        </div>
+        <div id="talk-bank-a" class="talkanswer"></div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<div id="filepanel" style="display:none">
+  <h3 id="fp-title">File section</h3>
+  <div id="fp-containers"></div>
+  <div class="fp-new">
+    <input id="fp-nc-name" type="text" placeholder="…or a new container">
+    <select id="fp-nc-color"></select>
+  </div>
+  <input id="fp-tags" type="text" placeholder="Tags, comma-separated" list="taglist">
+  <datalist id="taglist"></datalist>
+  <div class="fp-actions">
+    <button id="fp-save">File it</button>
+    <button id="fp-cancel">Cancel</button>
+  </div>
+  <p id="fp-status" class="note"></p>
+</div>
+
+<div id="condel" style="display:none">
+  <p id="condel-text"></p>
+  <button id="condel-out">Move items out &amp; delete container</button>
+  <button id="condel-with">Delete container AND its items</button>
+  <button id="condel-cancel">Cancel</button>
+</div>
+
+<section id="settingsview" style="display:none">
+  <h2>About PDFStruct</h2>
+  <p class="note">Version 0.2.0. Decomposition, the knowledgebank,
+  and talk-to-the-page all run on this device, in this browser.
+  Your documents are never uploaded. The model catalogue and
+  licence validation are the only features that use the network,
+  and only when you ask them to: models download to your machine;
+  validation sends a licence key and the product id, never a
+  document.</p>
+
+  <h3>Tip jar</h3>
+  <p class="note">PDFStruct is free. If it saved you time, a tip is
+  welcome — gratitude, given when you wish, as often as you wish.
+  It changes nothing about the product.</p>
+  <p>
+    <a href="https://www.buymeacoffee.com/nrupalakolt" target="_blank" rel="noopener">Buy Me a Coffee</a>
+    ·
+    <a href="https://paypal.me/nrupalakolkar" target="_blank" rel="noopener">PayPal</a>
+  </p>
+
+  <h3>Pro — lifetime feature unlock</h3>
+  <p class="note">No subscription — subscriptions are a money
+  drain, and we have moved away from that model. Pro is a one-time
+  payment: it removes the talk meter for good (free use includes
+  15 minutes of talk in total), and that is all it does. Not an
+  account. It buys the feature unlock and nothing else — no data,
+  no extras. Your licence key is shown once at purchase; keep it
+  safe — it is restorable, never tied to one device.</p>
+  <p>
+    <a id="pro-buy" href="https://aimlds.org/products/pdfstruct" target="_blank" rel="noopener">Get Pro (lifetime)</a>
+  </p>
+  <p id="licence-state" class="note">No licence on file.</p>
+  <div class="talkrow">
+    <input id="licence-key" type="text" placeholder="Licence key">
+    <button id="licence-validate">Validate licence</button>
+  </div>
+  <p id="licence-status" class="note"></p>
+
+  <h3>Talk model</h3>
+  <p id="model-state" class="note"></p>
+  <div id="model-catalogue"></div>
+</section>
+
+<script src="vendor/pdf.min.js"></script>
+<script src="engine.js"></script>
+<script src="docstore.js"></script>
+<script src="bank.js"></script>
+<script src="talk.js"></script>
+<script src="model.js"></script>
+<script src="workspace.js"></script>
+</body>
+</html>

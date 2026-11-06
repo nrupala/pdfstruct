@@ -144,3 +144,39 @@ install. This is a listing-copy/support note, not a code change.
 - [ ] Ownership can be transferred or co-owners added later via
       Developer Hub → Manage Authors & License, so starting on the
       personal account does not lock the add-on to it.
+
+---
+
+## Rebuild 2026-11-05 — extension 0.2.0 (self-contained)
+
+The packages above were rebuilt for 0.2.0: the extension is now
+self-contained (vendored pdf.js engine, workspace tab, knowledgebank,
+talk-to-the-page with a bundled on-device model). Package contents
+are now the full extension tree (34 entries: manifest, popup,
+workspace, engine/docstore/bank/talk/model scripts, icons, vendor/
+including the PDF.js engine, the Transformers.js runtime, and the
+Qwen2.5-0.5B model). The `firefox/` staging tree was re-synced from
+the same build.
+
+SHA-256 (2026-11-05 build):
+- `pdfstruct-chrome-edge.zip` — `6e8471384db7b59a7a196482b46bb33d2ee6774fcbc022a0658c223cbbd66bff` (404,003,292 bytes)
+- `pdfstruct-firefox.zip` — `fde694b8cc33258cb062e05014c584080d5d3cf8ca9775dd9f2fb28bc2193046` (404,003,349 bytes)
+
+Validation on these packages (2026-11-05): both zips opened and
+manifest read back from inside the zip (version 0.2.0; Firefox
+carries the gecko block); the bundled model file inside each zip
+measures 483,003,582 bytes. NOT RUN: real-browser unpacked load and
+`web-ext lint` (no browser/linter in the build environment) —
+Wright's pre-submission legs. Store package-size caps (notably
+AMO's) must be re-checked at submission time against the ~404 MB
+package size.
+
+Store-size verification (2026-11-05, primary sources): Chrome Web
+Store maximum package = 2 GB (compliant). Firefox AMO maximum =
+200 MB — the full Firefox package exceeds it. Fallback variant
+built for the AMO path: `pdfstruct-firefox-nomodel.zip` — SHA-256
+`6d161a17e1208e7bd853a8758a0aa253e904e06f04dd5a77f847903ac0a72799`
+(9,829,770 bytes) — identical except the bundled model weights are
+omitted (the model is then the catalogue's first download). If the
+fallback is what ships to AMO, the Firefox listing's bundled-model
+wording must be scoped accordingly at submission.

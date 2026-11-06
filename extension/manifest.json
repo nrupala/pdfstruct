@@ -9,13 +9,16 @@
    "128": "icons/icon128.png"
   }
  },
- "description": "See a PDF's outline tree via your local PDFStruct API. Fully local; needs pdfstruct-api running.",
+ "description": "Decompose a PDF into its outline tree with page ranges and section text — entirely in your browser.",
+ "content_security_policy": {
+  "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+ },
  "host_permissions": [
-  "http://127.0.0.1:8766/*"
+  "https://aimlds.org/*"
  ],
  "manifest_version": 3,
  "name": "PDFStruct",
- "version": "0.1.0",
+ "version": "0.2.0",
  "icons": {
   "16": "icons/icon16.png",
   "32": "icons/icon32.png",

@@ -1,9 +1,10 @@
 # PDFStruct — store listing copy (Chrome Web Store / Edge Add-ons / Firefox AMO)
 
-Prepared 2026-10-30. One copy set, usable on all three stores; per-store
-field-length notes are inline. Copyright © 2026 2351485 ALBERTA INC.
-Licence: Apache-2.0 (code); commercial terms for hosted/managed
-offerings are separate and do not apply to this free extension.
+Rewritten 2026-11-05 for the self-contained extension (0.2.0). One
+copy set, usable on all three stores; per-store field-length notes
+are inline. Copyright © 2026 2351485 ALBERTA INC. Licence:
+Apache-2.0 (code); commercial terms for hosted/managed offerings are
+separate and do not apply to this free extension.
 
 ## Name
 
@@ -11,38 +12,86 @@ PDFStruct
 
 ## One-line summary
 
-Decompose a PDF into its structure — a hierarchical outline tree with
-page ranges and each section's own text — free, fully local.
-(130 characters; within Chrome's 132-char summary limit. This is the
-canonical one-liner from CANONICAL-SHEET.md — do not paraphrase it.)
+Decompose a PDF into its outline tree with page ranges and section text — entirely in your browser.
+(99 characters; within Chrome's 132-char summary limit. Same text as
+the extension manifest description. It replaces the 0.1.0 one-liner
+under the owner's copy-truth rule: since 0.2.0 the decomposition
+engine ships inside the extension, so "in your browser" is the exact
+claim; CANONICAL-SHEET.md §1 records the change.)
 
 ## Full description
 
 PDFStruct shows you the skeleton of a PDF before you read a page of it.
 
-Pick a PDF in the popup and PDFStruct returns its outline tree —
-chapters, appendices, parts and sections, nested in order, each with
-its page range — decomposed by the PDFStruct engine running locally on
-your computer. Bookmarks/TOC are used when the PDF carries them;
-otherwise the structure is detected from the document's headings.
+Pick a PDF and PDFStruct returns its outline tree — chapters,
+appendices, parts and sections, nested in order, each with its page
+range, word count, and its own text — decomposed by the engine that
+ships inside the extension. Bookmarks/TOC are used when the PDF
+carries them; otherwise the structure is detected from the
+document's headings. Download the result as `.json` (the full tree),
+`.md`, `.txt`, or `.docx` (Word, generated in the browser).
 
-**Fully local, by design.** The extension does nothing on its own. It
-sends the PDF you choose to the free PDFStruct API running on your own
-machine (`pdfstruct-api`, 127.0.0.1:8766) and displays the outline it
-returns. No PDF, outline, or usage data is sent anywhere else — there
-is no server, no account, no analytics, and no tracking.
+**Self-contained: install it and it works.** The decomposition
+engine (pdf.js) ships inside the extension. There is nothing else
+to download, install, or start — no companion app, no local server,
+no account. The decomposition runs entirely in your browser; no
+PDF, outline, or usage data is sent anywhere — there is no server,
+no analytics, and no tracking.
 
-**What you need:** the free, open-source (Apache-2.0) PDFStruct
-package installed on the same computer, with its local API running:
+**Big books get a room, not a popup.** Documents over 25 pages open
+in the workspace — a full browser tab in feedreader format: the
+outline tree on the left (with search), the selected section's text
+on the right. Decomposition there proceeds page by page with a
+progress bar and no time limit, so a several-hundred-page textbook
+completes instead of dying against a popup. You can also send any
+document to the workspace explicitly from the popup.
 
-- Project: https://aimlds.org
-- Start the API with one command: `pdfstruct-api`
+**A knowledgebank, not just an outline.** The tree is a filing
+tool: file any section — or all of them — into containers you
+create (name + colour) with your own tags. Filed sections are
+fully manageable — save, edit (title, tags, containers, notes, and
+the working text itself), move between containers, delete for
+real — and their `.json` / `.md` / `.txt` / `.docx` outputs
+regenerate from the current text at download time, so outputs are
+never out of sync with your edits. Everything lives only in your
+browser's local storage (IndexedDB): searchable, filterable by
+container and tag, readable in the three-pane bank view, and
+exportable per item, per container, or as a whole-bank bundle.
 
-If the API is not running, the popup tells you exactly that and how to
-start it — it never fails silently.
+**Talk to the page.** Ask questions of the section you are
+reading. Answers are grounded in the text itself: retrieval runs
+over the document's own sections — the outline is the retrieval
+structure — and returns the bearing passages with their citations
+(click one to open it, highlighted, in the reader). A small AI
+model ships inside the extension (Qwen2.5-0.5B, Apache-2.0) and
+runs on your device to phrase answers from those passages; larger
+7B-class models are available from an in-workspace catalogue,
+downloaded to your machine on your click. Only models ever
+travel — no document content leaves your machine for this
+feature, ever. Every feature is fully available to everyone, on
+documents of any size; free use includes 15 minutes of talk in
+total, after which talk pauses (it never degrades). Pro — a
+one-time payment, no subscription — removes the meter for life.
+Decomposition, filing, and export are never metered.
 
-**Who it's for:** anyone who works with long PDFs — books, standards,
-manuals, reports, theses — and wants the map before the territory.
+**Who it's for:** anyone who works with long PDFs — books,
+standards, manuals, reports, theses — and wants the map before the
+territory.
+
+**For power users:** the same engine is also a free, open-source
+(Apache-2.0) Python package — CLI, local API and MCP server — for
+scripts and pipelines: https://github.com/nrupala/pdfstruct. The
+extension does not need it; it is there if you want it.
+
+## What's new (0.2.0)
+
+The extension is now self-contained: the decomposition engine runs
+entirely in your browser (no companion app to install or start),
+large documents open in a full-tab workspace — outline tree on the
+left, section text on the right — with page-by-page progress and
+no time limit, and .json/.md/.txt downloads are produced in the
+browser. This text copies the CHANGELOG entry for Extension 0.2.0
+verbatim, per the update-chain rule.
 
 ## Category suggestion
 
@@ -54,22 +103,27 @@ manuals, reports, theses — and wants the map before the territory.
 
 ## Permission justifications (for reviewers)
 
-- **host_permissions — `http://127.0.0.1:8766/*` only.** The
-  extension's single function is to POST a user-chosen PDF to the
-  PDFStruct API that the user runs on their own machine, and to read
-  the outline it returns. That is a loopback address on one fixed
-  port. There are **no remote hosts** in the manifest and no network
-  access to any other destination exists in the code.
-- **No API permissions are declared at all** — no `activeTab`, no
+- **No API permissions are declared** — no `activeTab`, no
   storage, history, tabs, or browsing-data access. The extension
-  reads only the one file the user picks in the popup's file
-  chooser, at the moment they pick it.
-  (Remediation note, 2026-10-30: an earlier draft of this section
-  justified an `activeTab` permission and a second loopback alias
-  that the shipped manifest does not declare. Gemini's pre-store
-  check (store/pdfstruct--gemini-check--2026-10-30.md) blocked on exactly that
-  discrepancy; the manifest and this listing now agree, verified
-  from the packaged zips.)
+  reads only the file the user picks in its own file chooser (or
+  drops on its workspace page), at the moment they pick it, and
+  processes it with the vendored pdf.js engine inside the browser.
+- **host_permissions — `https://aimlds.org/*` only.** Used by
+  exactly two user-initiated features, both in the workspace:
+  talk-to-the-page licence validation (sends the licence key the
+  user typed and the product id — never document content) and
+  model catalogue downloads (the browser fetches model files from
+  our host to the user's machine; only models travel). No other
+  hosts are declared, and the extension makes no other network
+  requests.
+- **Local storage (IndexedDB):** when a document is routed to the
+  workspace tab, the popup stores that one document in the
+  browser's own IndexedDB (on this device only) so the workspace
+  tab can read it; it is replaced by the next routed document and
+  removable at any time with the workspace's "Forget document"
+  button. Knowledgebank containers, filed sections, and the
+  licence and talk-meter records likewise live only in IndexedDB
+  on this device. Nothing is synced or transmitted.
 
 ## Privacy statement (store privacy fields + listing)
 
@@ -77,19 +131,21 @@ PDFStruct collects **no data at all**.
 
 - No personal data, browsing data, file contents, or usage data is
   collected, stored, sold, or transmitted by this extension.
-- The only network call the extension can make is to a loopback API
-  (`http://127.0.0.1:8766`) that the user themselves installed and
-  runs on the same machine. A PDF the user explicitly selects is sent
-  to that local API for decomposition and nowhere else; it never
-  leaves the user's device.
+- A PDF the user explicitly selects is decomposed inside the
+  user's own browser and nowhere else; it never leaves the user's
+  device. The only network requests the extension can make are
+  the two aimlds.org calls described above (licence key + product
+  id; model downloads) — documents are never among them.
+- A document routed to the workspace, and everything filed into
+  the knowledgebank, is held in the browser's local IndexedDB on
+  the device only.
 - No analytics, telemetry, crash reporting, advertising, or
-  third-party code of any kind.
-- The companion local API likewise processes PDFs locally and keeps
-  nothing after responding.
+  third-party code of any kind. (The pdf.js engine is vendored into
+  the package — Apache-2.0, Mozilla — and runs locally.)
 
 Single-purpose statement (Chrome): PDFStruct's single purpose is to
-display the structural outline of a user-selected PDF, computed by the
-user's own local PDFStruct API.
+display the structural outline of a user-selected PDF, computed
+entirely inside the user's browser.
 
 ## Support
 

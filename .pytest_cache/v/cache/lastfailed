@@ -1,0 +1,3 @@
+{
+  "tests/test_tester_b_findings.py::test_extension_popup_distinguishes_api_400_and_times_out": true
+}

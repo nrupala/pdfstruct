@@ -57,9 +57,21 @@ client at the `pdfstruct-mcp` command.
 
 ### Browser extension
 
-Load `extension/` unpacked (Developer mode in Chrome/Edge). It talks to
-your local API (above) — it does nothing without it. See
-`extension/README.md`.
+Load `extension/` unpacked (Developer mode in Chrome/Edge). Since 0.2.0
+the extension is self-contained — the decomposition engine (pdf.js)
+ships inside it; no local API needs to be running. Documents over 25
+pages open in a full-tab workspace (outline tree + section reader),
+with a knowledgebank (file outline sections into containers with
+tags; edit, move, delete, export — all local in IndexedDB) and
+talk-to-the-page (retrieval over the document's own sections with
+citations, phrased by a bundled on-device model; free talk metered at
+15 minutes of use, Pro is a one-time lifetime unlock — no
+subscription). Downloads `.json` / `.md` / `.txt` / `.docx`.
+See `extension/README.md`.
+
+(The bundled model weights are not in git — GitHub's file limit;
+`tools/fetch-model.sh` restores them, SHA-256 pinned. The store
+packages are built complete.)
 
 ## Sample JSON (abridged)
 

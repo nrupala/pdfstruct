@@ -158,7 +158,14 @@ def test_extension_has_no_active_tab_permission():
     assert not manifest.get("permissions")
 
 
-def test_extension_popup_distinguishes_api_400_and_times_out():
+def test_extension_popup_is_self_contained_and_never_times_out():
+    # 0.2.0 (owner's ruling, 2026-11-05): the popup no longer talks
+    # to a local API at all, so the old API-400 distinction is moot.
+    # What must hold now: read failures are reported plainly, no
+    # loopback reference exists, and NO fixed timeout exists — the
+    # 20 s AbortController of the API design killed a
+    # several-hundred-page textbook in the owner's own use.
     js = (EXT / "popup.js").read_text()
-    assert "could not read that PDF" in js
-    assert "AbortController" in js
+    assert "Could not read that PDF" in js
+    assert "AbortController" not in js
+    assert "127.0.0.1" not in js

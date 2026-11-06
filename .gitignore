@@ -8,3 +8,7 @@ __pycache__/
 extracted_*/
 dist/
 build/
+
+# bundled talk-model weights (483 MB, fetched by tools/fetch-model.sh)
+store/firefox/vendor/models/*/onnx/*.onnx
+extension/vendor/models/*/onnx/*.onnx

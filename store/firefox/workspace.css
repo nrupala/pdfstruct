@@ -1,0 +1,72 @@
+body { font-family: system-ui, sans-serif; margin: 0; padding: 16px 20px; color: #111; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 17px; margin: 14px 0 2px; }
+h3 { font-size: 15px; margin: 0 0 4px; }
+.note { font-size: 12px; color: #555; max-width: 80ch; }
+.hint { font-size: 12px; color: #555; }
+.toolbar { margin: 10px 0; }
+.toolbar > * { margin-right: 8px; }
+#progresswrap { margin: 10px 0; }
+#progresswrap progress { width: 320px; vertical-align: middle; }
+#downloads { margin: 10px 0; }
+#downloads button { margin: 0 4px; }
+main { display: flex; gap: 20px; align-items: flex-start; }
+aside#tree-pane { width: 340px; flex: none; border-right: 1px solid #ddd; padding-right: 16px; }
+#search { width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 4px 6px; }
+#tree ul { list-style: none; margin: 0; padding-left: 14px; }
+#tree > ul { padding-left: 0; }
+#tree li { margin: 2px 0; }
+button.node { display: block; width: 100%; text-align: left; background: none; border: none; padding: 3px 4px; font-size: 13px; cursor: pointer; }
+button.node:hover { background: #f0f0f0; }
+button.node.selected { background: #e3ecff; }
+section#reader { flex: 1; min-width: 0; }
+pre#nodetext { white-space: pre-wrap; font-size: 13px; line-height: 1.45; max-height: calc(100vh - 260px); overflow: auto; }
+button { margin-top: 4px; }
+.views { float: right; }
+.viewbtn.selected { background: #e3ecff; }
+.noderow { display: flex; align-items: flex-start; gap: 4px; }
+.noderow .node { flex: 1; }
+button.filebtn { font-size: 11px; padding: 2px 6px; margin-top: 2px; }
+#bank-grid { display: flex; gap: 20px; align-items: flex-start; }
+#bank-nav { width: 230px; flex: none; border-right: 1px solid #ddd; padding-right: 14px; }
+#bank-nav h3 { margin-top: 12px; }
+#bank-nav .banknav { display: block; width: 100%; text-align: left; background: none; border: none; padding: 4px; font-size: 13px; cursor: pointer; }
+#bank-nav .banknav.selected { background: #e3ecff; }
+#bank-nav .banknav.tag { display: inline-block; width: auto; margin: 2px; }
+.newcontainer { margin: 8px 0; }
+.newcontainer input { width: 130px; }
+#bank-export button { display: block; margin: 4px 0; }
+#bank-list-pane { width: 300px; flex: none; border-right: 1px solid #ddd; padding-right: 14px; }
+#bank-search { width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 4px 6px; }
+.bankitem { display: block; width: 100%; text-align: left; background: none; border: 1px solid #eee; padding: 6px; margin: 4px 0; cursor: pointer; }
+.bankitem.selected { background: #e3ecff; }
+.bankitem .bi-t { display: block; font-size: 13px; font-weight: 600; }
+.bankitem .bi-m { display: block; font-size: 11px; color: #555; }
+#bank-reader { flex: 1; min-width: 0; }
+#bi-text { white-space: pre-wrap; font-size: 13px; line-height: 1.45; max-height: 60vh; overflow: auto; }
+#filepanel { position: fixed; right: 18px; top: 90px; width: 320px; background: #fff; border: 1px solid #bbb; box-shadow: 0 4px 18px rgba(0,0,0,.18); padding: 12px; z-index: 10; }
+#filepanel .fp-cont { display: block; font-size: 13px; margin: 3px 0; }
+#filepanel input[type=text] { width: 100%; box-sizing: border-box; margin: 5px 0; padding: 4px 6px; }
+#filepanel .fp-actions { margin-top: 8px; }
+.talkbox { border-top: 1px solid #ddd; margin-top: 14px; padding-top: 8px; }
+.talkrow { display: flex; gap: 8px; }
+.talkrow input { flex: 1; padding: 4px 6px; }
+.talkanswer { font-size: 13px; white-space: pre-wrap; margin-top: 8px; }
+.talkanswer .cites { color: #555; font-size: 12px; }
+#licencebar { position: fixed; left: 18px; bottom: 18px; width: 420px; background: #fff8e1; border: 1px solid #d9a400; padding: 10px 12px; z-index: 11; }
+#licencebar input { width: 220px; padding: 4px 6px; }
+.condel-btn { font-size: 11px; margin: 0 0 4px 8px; }
+#condel { position: fixed; left: 18px; top: 90px; width: 360px; background: #fff; border: 1px solid #bbb; box-shadow: 0 4px 18px rgba(0,0,0,.18); padding: 12px; z-index: 12; }
+#condel button { display: block; margin: 5px 0; }
+#bi-editor { border: 1px solid #ddd; padding: 10px; margin: 8px 0; }
+#bi-editor label { display: block; font-size: 12px; margin: 6px 0; }
+#bi-editor input[type=text] { width: 100%; box-sizing: border-box; padding: 4px 6px; }
+#bi-editor textarea { width: 100%; box-sizing: border-box; padding: 4px 6px; }
+#bi-editor .fp-cont { display: block; font-size: 13px; }
+.ed-actions { margin-top: 8px; }
+.citebtn { background: none; border: none; color: #0b57d0; cursor: pointer; font-size: 12px; padding: 0; text-decoration: underline; }
+.wherelabel { color: #555; font-size: 12px; }
+.modelrow { margin: 6px 0; font-size: 13px; }
+.modelrow > * { margin-right: 8px; }
+#settingsview { max-width: 760px; }
+mark { background: #ffe58a; }
