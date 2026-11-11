@@ -1,5 +1,7 @@
 # PDFStruct
 
+[![Licence](https://img.shields.io/badge/licence-Apache--2.0-blue.svg)](LICENSE)
+
 Decompose a PDF into its structure — a hierarchical outline tree with
 page ranges and each section's own text — free, fully local.
 
